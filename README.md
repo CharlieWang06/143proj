@@ -5,7 +5,6 @@
 |-- requirements.txt
 |-- README.md
 |-- run_pipeline.py
-|-- data/
 |-- outputs/
 `-- diabetes_pipeline/
     |-- __init__.py
