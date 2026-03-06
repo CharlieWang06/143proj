@@ -28,4 +28,3 @@ def evaluate_model(model: LogisticRegression, x_test, y_test) -> tuple[str, list
     report = classification_report(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred).tolist()
     return report, cm
-

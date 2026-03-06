@@ -8,7 +8,12 @@ from diabetes_pipeline.eda import (
     plot_all_eda,
     plot_confusion_matrix,
 )
-from diabetes_pipeline.model import evaluate_model, scale_features, split_data, train_logistic_regression
+from diabetes_pipeline.model import (
+    evaluate_model,
+    scale_features,
+    split_data,
+    train_logistic_regression,
+)
 from diabetes_pipeline.preprocess import balance_with_nearmiss, basic_clean, select_model_columns
 
 
