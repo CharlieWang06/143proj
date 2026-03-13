@@ -113,6 +113,213 @@ def plot_income_distribution(data, output_dir: Path) -> None:
     plt.close(g.figure)
 
 
+def plot_age_bmi_interaction(data, output_dir: Path) -> None:
+    plot_data = data.copy()
+    plot_data["BMI_cat_3"] = pd.cut(
+        plot_data["BMI"],
+        bins=[0, 18.5, 25, 100],
+        labels=["Low (<18.5)", "Normal (18.5-25)", "High (>=25)"],
+    )
+
+    plt.figure(figsize=(12, 6))
+    sns.pointplot(
+        data=plot_data,
+        x="Age",
+        y="Diabetes_binary",
+        hue="BMI_cat_3",
+        errorbar=None,
+        palette=["#E6A11D", "#2CA02C", "#D62728"],
+    )
+    plt.title("Interaction of Age and 3-Class BMI on Diabetes Risk", fontsize=10)
+    plt.xlabel("Age Group", fontsize=10)
+    plt.ylabel("Probability of Diabetes", fontsize=10)
+    plt.legend(title="BMI Category")
+    plt.grid(True, linestyle="--", alpha=0.6)
+    _save_current_figure(output_dir, "age_bmi_interaction.png")
+
+
+def plot_metabolic_risk_heatmap(data, output_dir: Path) -> None:
+    metabolic_pivot = data.pivot_table(
+        values="Diabetes_binary",
+        index="HighBP",
+        columns="HighChol",
+        aggfunc="mean",
+    )
+
+    metabolic_pivot.index = ["Normal BP", "High BP"]
+    metabolic_pivot.columns = ["Normal Chol", "High Chol"]
+
+    plt.figure(figsize=(6, 6))
+    sns.heatmap(
+        metabolic_pivot,
+        annot=True,
+        fmt=".1%",
+        cmap="Reds",
+        cbar_kws={"label": "Probability of Diabetes"},
+        annot_kws={"size": 12, "weight": "bold"},
+    )
+    plt.title("Synergistic Effect of High BP & High Chol on Diabetes", fontsize=12, pad=20)
+    plt.yticks(rotation=0, fontsize=12)
+    plt.xticks(fontsize=12)
+    _save_current_figure(output_dir, "metabolic_risk_heatmap.png")
+
+
+def plot_lifestyle_vs_diabetes_by_bmi(data, output_dir: Path) -> None:
+    import matplotlib.ticker as mtick
+
+    plot_data = data.copy()
+    plot_data["BMI_cat_3"] = pd.cut(
+        plot_data["BMI"],
+        bins=[0, 18.5, 25, 100],
+        labels=["Low (<18.5)", "Normal (18.5-25)", "High (>=25)"],
+    )
+    plot_data["Non_Smoker"] = 1 - plot_data["Smoker"]
+    plot_data["Moderate_Alcohol"] = 1 - plot_data["HvyAlcoholConsump"]
+    plot_data["Lifestyle_Score"] = (
+        plot_data["PhysActivity"]
+        + plot_data["Fruits"]
+        + plot_data["Veggies"]
+        + plot_data["Non_Smoker"]
+        + plot_data["Moderate_Alcohol"]
+    )
+
+    plt.figure(figsize=(12, 5))
+    ax = sns.lineplot(
+        data=plot_data,
+        x="Lifestyle_Score",
+        y="Diabetes_binary",
+        hue="BMI_cat_3",
+        palette=["#E6A11D", "#2CA02C", "#D62728"],
+        marker="o",
+        markersize=10,
+        linewidth=3.5,
+        errorbar=None,
+    )
+
+    plt.title("Can a Perfect Lifestyle Mitigate High BMI Risk?", fontsize=12, pad=15)
+    plt.xlabel("Healthy Lifestyle Score (0 = Worst, 5 = Best)", fontsize=12)
+    plt.ylabel("Probability of Diabetes", fontsize=14)
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    plt.legend(title="BMI Category", title_fontsize=12, fontsize=11, loc="upper right", frameon=True)
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+    plt.grid(axis="x", alpha=0.0)
+    sns.despine()
+    _save_current_figure(output_dir, "lifestyle_vs_diabetes_by_bmi.png")
+
+
+def plot_income_diabetes_by_education(data, output_dir: Path) -> None:
+    import matplotlib.ticker as mtick
+
+    subset_edu = data[data["Education"].isin([2, 4, 6])].copy()
+
+    edu_map = {
+        2: "Elementary/Middle",
+        4: "High School",
+        6: "College Graduate",
+    }
+    subset_edu["Education_Label"] = subset_edu["Education"].map(edu_map)
+
+    plt.figure(figsize=(10, 6))
+    ax = sns.pointplot(
+        data=subset_edu,
+        x="Income",
+        y="Diabetes_binary",
+        hue="Education_Label",
+        errorbar=None,
+        palette="magma",
+        markers=["o", "s", "D"],
+        linestyles=["-", "--", "-."],
+    )
+
+    plt.title("The Buffering Effect: How Education Mitigates Income-Related Health Risks", fontsize=12)
+    plt.xlabel("Income Level (1 = Lowest, 8 = Highest)", fontsize=12)
+    plt.ylabel("Probability of Diabetes", fontsize=12)
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    plt.legend(title="Education Level", fontsize=11, title_fontsize=12)
+    plt.grid(axis="y", linestyle="--", alpha=0.5)
+    sns.despine()
+    _save_current_figure(output_dir, "income_diabetes_by_education.png")
+
+
+def plot_bmi_age_heatmap(data, output_dir: Path) -> None:
+    bmi_age_df = data.copy()
+
+    bmi_age_df["BMI_Group"] = pd.cut(
+        bmi_age_df["BMI"],
+        bins=[0, 18.5, 25, 30, 100],
+        labels=["Underweight", "Normal", "Overweight", "Obese"],
+        include_lowest=True,
+    )
+
+    bmi_age_pivot = bmi_age_df.pivot_table(
+        values="Diabetes_binary",
+        index="BMI_Group",
+        columns="Age",
+        aggfunc="mean",
+    )
+
+    plt.figure(figsize=(12, 5))
+    sns.heatmap(bmi_age_pivot, annot=True, fmt=".2f", cmap="YlOrRd")
+    plt.title("Diabetes Rate by BMI Group and Age")
+    plt.xlabel("Age Category")
+    plt.ylabel("BMI Group")
+    _save_current_figure(output_dir, "bmi_age_heatmap.png")
+
+
+def plot_risk_lift(data, output_dir: Path) -> None:
+    binary_features = [
+        "HighBP",
+        "HighChol",
+        "Stroke",
+        "HeartDiseaseorAttack",
+        "DiffWalk",
+        "PhysActivity",
+        "Smoker",
+        "HvyAlcoholConsump",
+    ]
+
+    risk_lift = []
+
+    for col in binary_features:
+        temp = data.groupby(col)["Diabetes_binary"].mean()
+        if 0 in temp.index and 1 in temp.index:
+            risk_lift.append(
+                {
+                    "Feature": col,
+                    "Rate_if_0": temp.loc[0],
+                    "Rate_if_1": temp.loc[1],
+                    "Absolute_Lift": temp.loc[1] - temp.loc[0],
+                }
+            )
+
+    risk_lift_df = pd.DataFrame(risk_lift).sort_values("Absolute_Lift", ascending=False)
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(data=risk_lift_df, x="Absolute_Lift", y="Feature")
+    plt.title("Absolute Increase in Diabetes Rate When Risk Factor = 1")
+    plt.xlabel("Absolute Lift in Diabetes Rate")
+    plt.ylabel("Feature")
+    _save_current_figure(output_dir, "risk_lift_bar.png")
+
+
+def plot_education_income_trend(data, output_dir: Path) -> None:
+    edu_income_trend = data.groupby(["Education", "Income"])["Diabetes_binary"].mean().reset_index()
+
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(
+        data=edu_income_trend,
+        x="Education",
+        y="Diabetes_binary",
+        hue="Income",
+        marker="o",
+    )
+
+    plt.title("Diabetes Rate Across Education Levels by Income Group")
+    plt.xlabel("Education Level")
+    plt.ylabel("Diabetes Rate")
+    _save_current_figure(output_dir, "education_income_trend.png")
+
+
 def plot_all_eda(data, output_dir: Path) -> None:
     """Generate and save all EDA images used in pro.ipynb."""
     plot_histograms(data, output_dir)
@@ -125,6 +332,13 @@ def plot_all_eda(data, output_dir: Path) -> None:
     plot_age_vs_diabetes(data, output_dir)
     plot_education_distribution(data, output_dir)
     plot_income_distribution(data, output_dir)
+    plot_age_bmi_interaction(data, output_dir)
+    plot_metabolic_risk_heatmap(data, output_dir)
+    plot_lifestyle_vs_diabetes_by_bmi(data, output_dir)
+    plot_income_diabetes_by_education(data, output_dir)
+    plot_bmi_age_heatmap(data, output_dir)
+    plot_risk_lift(data, output_dir)
+    plot_education_income_trend(data, output_dir)
 
 
 def plot_confusion_matrix(cm, output_dir: Path) -> None:
